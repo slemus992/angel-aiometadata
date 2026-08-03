@@ -16,16 +16,11 @@ api.mdblist.com endpoints:
 
 Requires:
   MDBLIST_API_KEY  - from your MDBList account preferences
-  MDBLIST_LIST_NAME - name for the list this script owns (default: "Angel Studios").
-                      The list is looked up by name on first run and created if
-                      it doesn't exist yet - no manual mdblist.com step needed.
-
-Confidence note: the list-lookup (GET /lists/user) and add/remove endpoints are
-verified byte-for-byte against mdblist-cli's source. The create-list call
-(POST /lists) is reconstructed from the MDBList API reference text (which
-confirms a "create a new static list" endpoint exists) but isn't wrapped by
-that CLI yet, so it's less battle-tested - if it 400s for you, that's the one
-spot to double check against your API plan/permissions.
+  MDBLIST_LIST_NAME - name of a list you own on mdblist.com (default: "Angel Studios").
+                      Create this once, manually, in the mdblist.com UI - MDBList's
+                      API confirmed (via a real 404) that it does not support creating
+                      lists programmatically, only reading/modifying existing ones.
+                      After that one-time step, everything else here is automatic.
 """
 
 import requests
@@ -42,11 +37,11 @@ class MDBListSync:
         self.session = requests.Session()
         self.api_key = MDBLIST_API_KEY
         self.list_name = MDBLIST_LIST_NAME
-        self.list_id = self._get_or_create_list_id()
+        self.list_id = self._find_list_id()
 
     # ---------------------------
 
-    def _get_or_create_list_id(self):
+    def _find_list_id(self):
         r = self.session.get(
             f"{MDBLIST_API_BASE}/lists/user",
             params={"apikey": self.api_key},
@@ -58,24 +53,12 @@ class MDBListSync:
                 log(f"Found existing MDBList list '{self.list_name}' (id {lst['id']})")
                 return lst["id"]
 
-        log(f"No list named '{self.list_name}' found - creating it")
-        r = self.session.post(
-            f"{MDBLIST_API_BASE}/lists",
-            params={"apikey": self.api_key},
-            json={"name": self.list_name, "mediatype": "all", "private": True},
-            timeout=30,
+        raise RuntimeError(
+            f"No list named '{self.list_name}' found on your MDBList account. "
+            f"MDBList doesn't support creating lists via API - go create a static list "
+            f"called exactly '{self.list_name}' once at mdblist.com (My Lists > New List), "
+            f"then re-run this."
         )
-        if not r.ok:
-            raise RuntimeError(
-                f"Could not auto-create MDBList list '{self.list_name}' "
-                f"({r.status_code}): {r.text[:300]}\n"
-                "As a fallback, create it once manually at mdblist.com and set "
-                "MDBLIST_LIST_ID instead of MDBLIST_LIST_NAME."
-            )
-        data = r.json()
-        list_id = data.get("id") or data.get("list_id")
-        log(f"Created MDBList list '{self.list_name}' (id {list_id})")
-        return list_id
 
     # ---------------------------
 
