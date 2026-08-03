@@ -2,7 +2,8 @@ import json
 import hashlib
 from pathlib import Path
 from tmdb import TMDBMatcher
-from config import OUTPUT_DIR
+from mdblist_sync import MDBListSync
+from config import OUTPUT_DIR, MDBLIST_API_KEY
 from logger import log
 
 class Generator:
@@ -18,14 +19,25 @@ class Generator:
         
         log("Matching shows")
         show_catalog = self._build_catalog(self.shows, is_movie=False)
-        
-        complete = movie_catalog + show_catalog
-        
-        # MDBList expects a flat array of TMDB IDs or IMDb IDs.
-        # We will output a simple JSON list of the tmdb_ids.
-        mdblist_format = [item["tmdb_id"] for item in complete if "tmdb_id" in item]
-        
-        self._write_json("angel_mdblist.json", mdblist_format)
+
+        movie_ids = [item["tmdb_id"] for item in movie_catalog]
+        show_ids = [item["tmdb_id"] for item in show_catalog]
+
+        # Kept as a local snapshot/debug artifact and for change detection -
+        # this file itself is NOT what AIOMetadata reads. See mdblist_sync.py
+        # for why a hosted JSON file can't be used as an AIOMetadata catalog
+        # source directly.
+        self._write_json("angel_mdblist.json", {"movies": movie_ids, "shows": show_ids})
+
+        if MDBLIST_API_KEY:
+            log("Syncing catalog to MDBList")
+            MDBListSync().sync(movie_ids, show_ids)
+        else:
+            log(
+                "MDBLIST_API_KEY not set - skipping MDBList sync. "
+                "Set it to actually push this catalog into AIOMetadata-compatible form "
+                "(the list itself is auto-created on first run)."
+            )
 
     def _build_catalog(self, items, is_movie=True):
         catalog = []
