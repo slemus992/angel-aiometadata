@@ -1,0 +1,22 @@
+
+(You can use GitHub's built-in MIT license if you prefer.)
+
+---
+
+# README.md
+
+````markdown
+# Angel AIOMetadata
+
+Automatically generates an up-to-date AIOMetadata catalog for Angel Studios.
+
+## Features
+
+- Daily automatic updates
+- Movies
+- TV Shows
+- TMDb matching
+- GitHub Actions
+- AIOMetadata compatible JSON
+
+## Structure
