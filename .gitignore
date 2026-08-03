@@ -1,7 +1,9 @@
 __pycache__/
 *.pyc
 .env
-output/*.json
+output/**
+!output/
+!output/angel_mdblist.json
 logs/
 .vscode/
 .idea/
