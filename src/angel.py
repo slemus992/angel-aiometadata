@@ -38,6 +38,7 @@ class AngelScraper:
         
         log(f"Scraping Angel Studios {media_type} from {url}")
         response = self.session.get(url, timeout=30)
+        log(f"Response: HTTP {response.status_code}, {len(response.text)} bytes")
         response.raise_for_status()
 
         soup = BeautifulSoup(response.text, "lxml")
@@ -45,15 +46,18 @@ class AngelScraper:
 
         if not script_tag:
             log(f"Could not find Next.js data on {url}")
+            log(f"Page title tag: {soup.title.string if soup.title else 'none'}")
+            log(f"First 300 chars of body: {response.text[:300]!r}")
             return []
 
         try:
             data = json.loads(script_tag.string)
             json_items = self._extract_media_nodes(data)
-            
+            log(f"Found {len(json_items)} raw title/slug nodes in __NEXT_DATA__ before dedup")
+
             unique_items = self._format_items(json_items, media_type)
             log(f"Found {len(unique_items)} {media_type} using embedded JSON")
-            
+
             return unique_items
             
         except json.JSONDecodeError:
