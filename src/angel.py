@@ -55,6 +55,17 @@ class AngelScraper:
             json_items = self._extract_media_nodes(data)
             log(f"Found {len(json_items)} raw title/slug nodes in __NEXT_DATA__ before dedup")
 
+            if not json_items:
+                # The site's data shape probably changed. Find any dict that has
+                # a "slug" key at all (regardless of what else is next to it) so
+                # we can see what key names replaced "title".
+                slug_nodes = self._find_nodes_with_key(data, "slug")
+                log(f"Diagnostic: found {len(slug_nodes)} nodes containing a 'slug' key")
+                if slug_nodes:
+                    sample_keys = sorted(slug_nodes[0].keys())
+                    log(f"Diagnostic: keys on a sample 'slug' node: {sample_keys}")
+                    log(f"Diagnostic: sample node (truncated): {str(slug_nodes[0])[:400]}")
+
             unique_items = self._format_items(json_items, media_type)
             log(f"Found {len(unique_items)} {media_type} using embedded JSON")
 
@@ -77,6 +88,21 @@ class AngelScraper:
         elif isinstance(data, list):
             for item in data:
                 nodes.extend(self._extract_media_nodes(item))
+        return nodes
+
+    # ---------------------------
+
+    def _find_nodes_with_key(self, data, key) -> List[Dict]:
+        """Diagnostic helper: finds any dict containing the given key, anywhere in the tree."""
+        nodes = []
+        if isinstance(data, dict):
+            if key in data:
+                nodes.append(data)
+            for value in data.values():
+                nodes.extend(self._find_nodes_with_key(value, key))
+        elif isinstance(data, list):
+            for item in data:
+                nodes.extend(self._find_nodes_with_key(item, key))
         return nodes
 
     # ---------------------------
