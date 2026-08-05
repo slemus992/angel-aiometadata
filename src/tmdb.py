@@ -61,11 +61,11 @@ class TMDBMatcher:
             "include_adult": False,
         }
 
-        if year:
-            if media_type == "movie":
-                params["year"] = year
-            else:
-                params["first_air_date_year"] = year
+        # Deliberately NOT passing year/first_air_date_year here: TMDB's search
+        # treats it as a hard filter and returns zero results if Angel Studios'
+        # listed release date doesn't exactly match TMDB's (common - re-release
+        # dates, festival dates, etc). Year is instead used purely as a scoring
+        # signal in _best_match() below, against the full unfiltered result set.
 
         r = self.session.get(
             endpoint,
